@@ -1,0 +1,483 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Enhance Performance of ExtJs Grid Record set value operation | Thinking in Crowd / 鹄思乱想</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="鹄思乱想">
+    
+    <meta name="description" content="When implementing a feature for the project, I encounter one Javascript method that takes around 9 seconds to finish.  Clearly, there is some performa">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="kenspirit" />
+    <meta name="twitter:title" content="Enhance Performance of ExtJs Grid Record set value operation | Thinking in Crowd / 鹄思乱想" />
+      
+    
+    
+    <link rel="alternative" href="/atom.xml" title="Thinking in Crowd / 鹄思乱想" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="Thinking in Crowd / 鹄思乱想">Thinking in Crowd / 鹄思乱想</a></h1>
+				<h2 class="blog-motto">Swan flying in the immense sky</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/about">About</a></li>
+					
+						<li><a href="/algorithm">Algorithm</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:www.thinkingincrowd.me">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2011/07/20/enhance-performance-of-extjs-grid-record-set-value/" title="Enhance Performance of ExtJs Grid Record set value operation" itemprop="url">Enhance Performance of ExtJs Grid Record set value operation</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://plus.google.com/108764880042816555752?rel=author" title="鹄思乱想" target="_blank" itemprop="author">鹄思乱想</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2011-07-20T07:25:39.000Z" itemprop="datePublished">Jul 20 2011</time>
+    Updated:<time datetime="2014-03-28T14:10:40.000Z" itemprop="dateModified">Mar 28 2014</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+		</div>
+		
+		<p>When implementing a feature for the project, I encounter one Javascript method that takes around 9 seconds to finish.  Clearly, there is some performance issue in it.</p>
+<p>The method logic is simple.  Take below table’s data as an example:</p>
+<pre><code>Measurement         XS     S     M     L      <span class="built_in">XL</span>   XXL
+ Sleeve             <span class="number">1</span>      <span class="number">1</span>     <span class="number">0</span>     <span class="number">2</span>      <span class="number">2</span>     <span class="number">2</span>
+</code></pre><p>Consider above row “Sleeve” is a Record in ExtJs Grid.  When deleting size S &amp; L column, the figure should change to be:</p>
+<pre><code>Measurement         XS     M     <span class="built_in">XL</span>      XXL
+ Sleeve             <span class="number">2</span>      <span class="number">0</span>      <span class="number">4</span>      <span class="number">4</span>
+</code></pre><p>The intent is to accumulate the figure of the deleted size to the remained ones in one direction from the Standard size M.  Hence, this method requires intensive call on Record.set();  Below is the sudo code.</p>
+<pre><code>    var recalculatedGridData = [];
+    var colSearchCount = <span class="number">0</span>;
+    <span class="keyword">for</span> (var rowNo = <span class="number">0</span>; rowNo &lt; gridStoreLength; rowNo++) {
+        <span class="keyword">...</span>
+        // Calculation logic here to get all the correct data first.
+        <span class="keyword">...</span>
+        recalculatedGridData.push(recordData); // Store the data
+    }
+    // Reset recalculated data to record
+    <span class="keyword">for</span> (var rowNo = <span class="number">0</span>; rowNo &lt; recalculatedGridData.length; rowNo++) {
+        var recordData = recalculatedGridData[rowNo];
+        var record = store.virtualGetAt(recordData.rowNo);
+        <span class="keyword">for</span> (var colNo = <span class="number">0</span>; colNo &lt; recordData.cells.length; colNo++) {
+            var cell = recordData.cells[colNo];
+            record.set(cell.name, cell.value);
+        }
+        // record.batchSet(recordData.cells); // Enhanced version to batch set
+    }
+</code></pre><p>The performance tuning rule is first to find out the part where the bigger portion of the time used in.  This method contains two major for loop.  One is the first for calculation logic and the second is just purely setting data to the right cell.</p>
+<p>The total time of the method takes around 9 seconds when the involved number of records are 42 and each have 5 cells affected.  It’s found that 99% of the time spent on the second for loop.</p>
+<p>After testing more intensively, each record.set() takes around 0.05 second.  That is why operation on around 42 * 5 = 210 cells takes 9 seconds.</p>
+<p>OK.  Root cause is found and it’s time to see why it takes so long to call record.set().  After checking on the source of ExtJs Record and Store object.</p>
+<p>In Record.js:</p>
+<pre><code>set : <span class="function"><span class="keyword">function</span><span class="params">(name, value)</span>{</span>
+        <span class="keyword">var</span> encode = Ext.isPrimitive(value) ? <span class="built_in">String</span> : Ext.encode;
+        <span class="keyword">if</span>(encode(<span class="keyword">this</span>.data[name]) == encode(value)) {
+            <span class="keyword">return</span>;
+        }
+        <span class="keyword">this</span>.dirty = <span class="literal">true</span>;
+        <span class="keyword">if</span>(!<span class="keyword">this</span>.modified){
+            <span class="keyword">this</span>.modified = {};
+        }
+        <span class="keyword">if</span>(<span class="keyword">this</span>.modified[name] === <span class="literal">undefined</span>){
+            <span class="keyword">this</span>.modified[name] = <span class="keyword">this</span>.data[name];
+        }
+        <span class="keyword">this</span>.data[name] = value;
+        <span class="keyword">if</span>(!<span class="keyword">this</span>.editing){
+            <span class="keyword">this</span>.afterEdit();
+        }
+    },
+
+    <span class="comment">// private</span>
+    afterEdit : <span class="function"><span class="keyword">function</span><span class="params">()</span>{</span>
+        <span class="keyword">if</span> (<span class="keyword">this</span>.store != <span class="literal">undefined</span> &amp;&amp; <span class="keyword">typeof</span> <span class="keyword">this</span>.store.afterEdit == <span class="string">"function"</span>) {
+            <span class="keyword">this</span>.store.afterEdit(<span class="keyword">this</span>);
+        }
+    },
+</code></pre><p>In Store.js:</p>
+<pre><code>    afterEdit : <span class="function"><span class="keyword">function</span><span class="params">(record)</span>{</span>
+        <span class="keyword">if</span>(<span class="keyword">this</span>.modified.indexOf(record) == -<span class="number">1</span>){
+            <span class="keyword">this</span>.modified.push(record);
+        }
+        <span class="keyword">this</span>.fireEvent(<span class="string">'update'</span>, <span class="keyword">this</span>, record, Ext.data.Record.EDIT);
+    },
+</code></pre><p>You can find that each Record.set() will call store.afterEdit() with its own as parameter.  Hence, I am considering batch update all cells in one record and then trigger Record.afterEdit() method.  Below is the “cracked” method added for batch set data.</p>
+<pre><code>batchSet : function(cells){
+        <span class="keyword">for</span> (<span class="keyword">var</span> i = cells.length; i--;) {
+            <span class="keyword">var</span> name = cells[i].name;
+            <span class="keyword">var</span> <span class="keyword">value</span> = cells[i].<span class="keyword">value</span>;
+            <span class="keyword">var</span> encode = Ext.isPrimitive(<span class="keyword">value</span>) ? String : Ext.encode;
+            <span class="keyword">if</span>(encode(<span class="keyword">this</span>.data[name]) == encode(<span class="keyword">value</span>)) {
+                <span class="keyword">return</span>;
+            }
+            <span class="keyword">this</span>.dirty = <span class="keyword">true</span>;
+            <span class="keyword">if</span>(!<span class="keyword">this</span>.modified){
+                <span class="keyword">this</span>.modified = {};
+            }
+            <span class="keyword">if</span>(<span class="keyword">this</span>.modified[name] === undefined){
+                <span class="keyword">this</span>.modified[name] = <span class="keyword">this</span>.data[name];
+            }
+            <span class="keyword">this</span>.data[name] = <span class="keyword">value</span>;
+        }
+        <span class="keyword">if</span>(!<span class="keyword">this</span>.editing){
+            <span class="keyword">this</span>.afterEdit();
+        }
+    },
+</code></pre><p>After testing, operation based on the same data set takes around 3.5 seconds now.  Suddenly drops 60%!</p>
+<p>Kind of satisfied on what I have changed on this.  However, I think there should be room to improve.  Any Comment?</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Sword/">Sword</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/ExtJs/">ExtJs</a><a href="/tags/Javascript/">Javascript</a><a href="/tags/Performance/">Performance</a>
+  </div>
+
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://www.thinkingincrowd.me/2011/07/20/enhance-performance-of-extjs-grid-record-set-value/" data-title="Enhance Performance of ExtJs Grid Record set value operation | Thinking in Crowd / 鹄思乱想" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2011/07/27/annoying-titles-of-two-articles/" title="看了让我有点蛋疼的文章标题">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  看了让我有点蛋疼的文章标题</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2011/07/20/valueofstone/"  title="一个石头值多少钱">
+ <strong>NEXT:</strong><br/> 
+ <span>一个石头值多少钱
+</span>
+</a>
+</div>
+
+</nav>
+
+	<section class="comment">
+
+
+    <div id="disqus_thread"></div>
+
+</section>
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+  
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+			<li><a href="/categories/Life/" title="Life">Life<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Sword/" title="Sword">Sword<sup>21</sup></a></li>
+		
+			<li><a href="/categories/Think/" title="Think">Think<sup>27</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/AMD/" title="AMD">AMD<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Adapt/" title="Adapt">Adapt<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Ajax/" title="Ajax">Ajax<sup>2</sup></a></li>
+		
+			<li><a href="/tags/AngularJS/" title="AngularJS">AngularJS<sup>5</sup></a></li>
+		
+			<li><a href="/tags/Blogging/" title="Blogging">Blogging<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Book/" title="Book">Book<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Callback/" title="Callback">Callback<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Change/" title="Change">Change<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Coding/" title="Coding">Coding<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Connect/" title="Connect">Connect<sup>1</sup></a></li>
+		
+			<li><a href="/tags/DB/" title="DB">DB<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Design/" title="Design">Design<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Destiny/" title="Destiny">Destiny<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Directive/" title="Directive">Directive<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Excel/" title="Excel">Excel<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Execution context/" title="Execution context">Execution context<sup>1</sup></a></li>
+		
+			<li><a href="/tags/ExtJs/" title="ExtJs">ExtJs<sup>7</sup></a></li>
+		
+			<li><a href="/tags/Function definition/" title="Function definition">Function definition<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Functional Programming/" title="Functional Programming">Functional Programming<sup>2</sup></a></li>
+		
+			<li><a href="/tags/GTD/" title="GTD">GTD<sup>2</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<div class="social-font" class="clearfix">
+		
+		<a href="http://weibo.com/kenspirit" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/kenspirit" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/kenspirit" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/kenspirit" target="_blank" title="facebook"></a>
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://zespia.tw/hexo/" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2014 
+		
+		<a href="http://www.thinkingincrowd.me" target="_blank" title="鹄思乱想">鹄思乱想</a>
+		
+		</p>
+</div>
+</footer>
+    
+<script>
+  var disqus_shortname = 'thinkingincrowd';
+  
+  var disqus_url = 'http://www.thinkingincrowd.me/2011/07/20/enhance-performance-of-extjs-grid-record-set-value/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+<script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-37378953-1', 'www.thinkingincrowd.me');  
+ga('send', 'pageview');
+</script>
+
+
+  </body>
+</html>

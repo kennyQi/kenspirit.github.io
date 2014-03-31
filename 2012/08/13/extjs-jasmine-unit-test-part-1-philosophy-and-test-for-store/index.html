@@ -1,0 +1,570 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>ExtJS, Jasmine, Unit Test - Part 1 (Philosophy and Test for Store) | Thinking in Crowd / 鹄思乱想</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="鹄思乱想">
+    
+    <meta name="description" content="After the integration for ExtJS, Jasmine and Maven is done, we should consider how the unit test should be done for some web application built by ExtJ">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="kenspirit" />
+    <meta name="twitter:title" content="ExtJS, Jasmine, Unit Test - Part 1 (Philosophy and Test for Store) | Thinking in Crowd / 鹄思乱想" />
+      
+    
+    
+    <link rel="alternative" href="/atom.xml" title="Thinking in Crowd / 鹄思乱想" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="Thinking in Crowd / 鹄思乱想">Thinking in Crowd / 鹄思乱想</a></h1>
+				<h2 class="blog-motto">Swan flying in the immense sky</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/about">About</a></li>
+					
+						<li><a href="/algorithm">Algorithm</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:www.thinkingincrowd.me">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2012/08/13/extjs-jasmine-unit-test-part-1-philosophy-and-test-for-store/" title="ExtJS, Jasmine, Unit Test - Part 1 (Philosophy and Test for Store)" itemprop="url">ExtJS, Jasmine, Unit Test - Part 1 (Philosophy and Test for Store)</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://plus.google.com/108764880042816555752?rel=author" title="鹄思乱想" target="_blank" itemprop="author">鹄思乱想</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2012-08-13T07:02:18.000Z" itemprop="datePublished">Aug 13 2012</time>
+    Updated:<time datetime="2014-03-28T14:10:40.000Z" itemprop="dateModified">Mar 28 2014</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+		</div>
+		
+		<p>After the <a href="http://www.thinkingincrowd.me/blog/2012/08/06/extjs-jasmine-maven-integration/">integration</a> for ExtJS, Jasmine and Maven is done, we should consider how the unit test should be done for some web application built by ExtJS.</p>
+<p>My previous ExtJS projects experience are all for internal company usage in Retail or Logistics business, the UI is composed of plenty components and full of user interaction.  Hence, business logic are often intervened with UI behavior together.  This is also one of the reason previously we think it’s difficult to go for JS Unit Test.  (Maybe just we are too inexperienced on that.  Please share your experience to us if you have any.)</p>
+<p>Assuming I need to introduce JS Unit Test to a system without any Unit Test covered, what should the general JS Unit Test principles to be firstly considered?  My opinions are:</p>
+<p>&gt;</p>
+<p>&gt;<br>&gt;</p>
+<blockquote>
+<ol>
+<li>To test external contract against each ExtJS Component or JS function.  The external contract is where changes often take place.</li>
+</ol>
+<ol>
+<li>To test business logic (data calculation/validation, etc.) because this is where the real value in the business.</li>
+</ol>
+<ol>
+<li>Not to test the UI behavior (Window popup, Panel/Tree collapse/expand, Drap/Drop, Animation, etc.).  It’s quite difficult to mimic and verify the UI behavior because you have to twist your mind somehow to “tranform” the UI behavior to manual control the “movement” and then verify it.  It’s just writing even more UI logic to control other UI logic.</li>
+</ol>
+<ol>
+<li>Not to test all Ajax requests because it’s slow and actually should be considered as Integration Test.  It’s better to mock the interface data to test the Ajax caller &amp; response handler.</li>
+</ol>
+</blockquote>
+<p>Let’s see some real Unit Test example.  (Here some assumptions are made on how the components are generated and used in System: UI are completely built by ExtJS Designer.  It may not be the best practice, but it’s the way I think the real practice can be applied.)</p>
+<p><strong>Ext.data.Store</strong></p>
+<p>You might first wonder why Unit Test need to be done for Store component?  I got to tell you that I have met many bugs that are introduced because of fields’ definition changed.  This is the major contract bound the Store with the caller.</p>
+<p>Below is a typical xxx.Datastore.js file generated by Ext Designer.</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+</pre></td><td class="code"><pre>    Ext.ns(<span class="string">'xxx'</span>);
+    xxx.DataStore = Ext.extend(Ext.data.JsonStore, {
+        constructor: <span class="function"><span class="keyword">function</span><span class="params">(cfg)</span> {</span>
+            cfg = cfg || {};
+            xxx.DataStore.superclass.constructor.call(<span class="keyword">this</span>, Ext.apply({
+                storeId: <span class="string">'xxx.DataStore'</span>,
+                url: <span class="string">'http://www.foo.com/stub'</span>,
+                root: <span class="string">'data.rows'</span>,
+                totalProperty: <span class="string">'data.totalCount'</span>,
+                autoLoad: <span class="literal">true</span>,
+                fields: [
+                    {
+                        name: <span class="string">'code'</span>
+                    },
+                    {
+                        name: <span class="string">'name'</span>
+                    }
+                ]
+            }, cfg));
+        }
+    });
+    <span class="keyword">new</span> xxx.DataStore();
+</pre></td></tr></table></figure>
+
+<p>How should we test it?  This is an autoLoad Store.  As a JS source file to be linked in for testing, I cannot use Jasmine spyOn to stub it.  That is because JS source file is loaded before Jasmine spyOn in Spec can ever be run.  The only thing I can think of is to override the Ext Ajax lib to not doing actual request call.</p>
+<p>Code in file globalTestStub.js to override the Ajax lib:</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre>1
+2
+3
+</pre></td><td class="code"><pre>    Ext.lib.Ajax.request = <span class="function"><span class="keyword">function</span><span class="params">()</span> {</span>
+      <span class="keyword">return</span> {success: <span class="literal">true</span>};
+    };
+</pre></td></tr></table></figure>
+
+<p>Configuration in POM.xml</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+</pre></td><td class="code"><pre>    <span class="tag">&lt;<span class="title">configuration</span>&gt;</span>
+        <span class="tag">&lt;<span class="title">preloadSources</span>&gt;</span>
+            <span class="tag">&lt;<span class="title">source</span>&gt;</span>adapter/ext/ext-base-debug.js<span class="tag">&lt;/<span class="title">source</span>&gt;</span>
+            <span class="tag">&lt;<span class="title">source</span>&gt;</span>ext/ext-all-debug-w-comments.js<span class="tag">&lt;/<span class="title">source</span>&gt;</span>
+            <span class="tag">&lt;<span class="title">source</span>&gt;</span>${project.basedir}/Resources/test/js/globalTestStub.js<span class="tag">&lt;/<span class="title">source</span>&gt;</span>
+        <span class="tag">&lt;/<span class="title">preloadSources</span>&gt;</span>
+        <span class="tag">&lt;<span class="title">jsSrcDir</span>&gt;</span>${project.basedir}/Resources/js<span class="tag">&lt;/<span class="title">jsSrcDir</span>&gt;</span>
+        <span class="tag">&lt;<span class="title">jsTestSrcDir</span>&gt;</span>${project.basedir}/Resources/test/js<span class="tag">&lt;/<span class="title">jsTestSrcDir</span>&gt;</span>
+        <span class="tag">&lt;<span class="title">sourceIncludes</span>&gt;</span>
+            <span class="tag">&lt;<span class="title">include</span>&gt;</span>xxx.DataStore.js<span class="tag">&lt;/<span class="title">include</span>&gt;</span>
+    ...
+    <span class="tag">&lt;/<span class="title">configuration</span>&gt;</span>
+</pre></td></tr></table></figure>
+
+<p>ExtJS source and the globalTestStub.js are included in <em>preloadSources</em> so that all Stub/Mock code required for Unit Test can be initialized correctly before other JS sources and Test Spec files without polluting real production code.</p>
+<p>How to write a Test Spec then?  Actually, there is no fixed way, but just a simple rule: to test the contract.</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+</pre></td><td class="code"><pre>    describe(<span class="string">'xxx.Datastore'</span>, <span class="function"><span class="keyword">function</span><span class="params">()</span> {</span>
+        it(<span class="string">'should be able to initialized'</span>, <span class="function"><span class="keyword">function</span><span class="params">()</span> {</span>
+            <span class="keyword">var</span> oStore = Ext.StoreMgr.lookup(<span class="string">'xxx.DataStore'</span>);
+            expect(oStore).toBeTruthy();
+        });
+
+        it(<span class="string">'should load data correctly'</span>, <span class="function"><span class="keyword">function</span><span class="params">()</span> {</span>
+            <span class="keyword">var</span> oStore = Ext.StoreMgr.lookup(<span class="string">'xxx.DataStore'</span>);
+            oStore.loadData({
+                data: {
+                    rows: [
+                        {
+                            code: <span class="string">'C1'</span>,
+                            name: <span class="string">'N1'</span>
+                        },
+                        {
+                            code: <span class="string">'C2'</span>,
+                            name: <span class="string">'N2'</span>
+                        }
+                    ],
+                    totalCount: <span class="number">2</span>
+                }
+            });
+
+            expect(oStore.getTotalCount()).toEqual(<span class="number">2</span>);
+            <span class="keyword">var</span> oRecord = oStore.getAt(<span class="number">0</span>);
+            expect(oRecord.get(<span class="string">'code'</span>)).toEqual(<span class="string">'C1'</span>);
+            expect(oRecord.get(<span class="string">'name'</span>)).toEqual(<span class="string">'N1'</span>);
+        });
+    });
+</pre></td></tr></table></figure>
+
+<p>Unit Test for non-autoload Store would be similar but easier.</p>
+<p>Beside how the Test is written, I would like to draw your attention to how I wrote the description for the Suite and the Spec.  I am not sure whether I understood the <a href="http://dannorth.net/introducing-bdd/" target="_blank">Behavior Driven Development</a> comprehensively because I am still learning it.  However, I think this simple mind change helps me to think about how the behavior should be more than just simply how to write Test to meet coverage.  It can even helps us to review our design whether particular code belongs to the right place.</p>
+<p>Let’s explore how Unit Test can be achieved more for ExtJS later.</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Sword/">Sword</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/ExtJs/">ExtJs</a><a href="/tags/Jasmine/">Jasmine</a><a href="/tags/Javascript/">Javascript</a><a href="/tags/UnitTest/">UnitTest</a><a href="/tags/Mock/">Mock</a>
+  </div>
+
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://www.thinkingincrowd.me/2012/08/13/extjs-jasmine-unit-test-part-1-philosophy-and-test-for-store/" data-title="ExtJS, Jasmine, Unit Test - Part 1 (Philosophy and Test for Store) | Thinking in Crowd / 鹄思乱想" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2012/08/30/extjs-jasmine-unit-test-part-2-ajax-behavior-2/" title="ExtJS, Jasmine, Unit Test – Part 2 (Ajax &amp; Behavior)">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  ExtJS, Jasmine, Unit Test – Part 2 (Ajax &amp; Behavior)</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2012/08/06/extjs-jasmine-maven-integration/"  title="ExtJS, Jasmine, Maven - Integration">
+ <strong>NEXT:</strong><br/> 
+ <span>ExtJS, Jasmine, Maven - Integration
+</span>
+</a>
+</div>
+
+</nav>
+
+	<section class="comment">
+
+
+    <div id="disqus_thread"></div>
+
+</section>
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+  
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+			<li><a href="/categories/Life/" title="Life">Life<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Sword/" title="Sword">Sword<sup>21</sup></a></li>
+		
+			<li><a href="/categories/Think/" title="Think">Think<sup>27</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/AMD/" title="AMD">AMD<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Adapt/" title="Adapt">Adapt<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Ajax/" title="Ajax">Ajax<sup>2</sup></a></li>
+		
+			<li><a href="/tags/AngularJS/" title="AngularJS">AngularJS<sup>5</sup></a></li>
+		
+			<li><a href="/tags/Blogging/" title="Blogging">Blogging<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Book/" title="Book">Book<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Callback/" title="Callback">Callback<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Change/" title="Change">Change<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Coding/" title="Coding">Coding<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Connect/" title="Connect">Connect<sup>1</sup></a></li>
+		
+			<li><a href="/tags/DB/" title="DB">DB<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Design/" title="Design">Design<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Destiny/" title="Destiny">Destiny<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Directive/" title="Directive">Directive<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Excel/" title="Excel">Excel<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Execution context/" title="Execution context">Execution context<sup>1</sup></a></li>
+		
+			<li><a href="/tags/ExtJs/" title="ExtJs">ExtJs<sup>7</sup></a></li>
+		
+			<li><a href="/tags/Function definition/" title="Function definition">Function definition<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Functional Programming/" title="Functional Programming">Functional Programming<sup>2</sup></a></li>
+		
+			<li><a href="/tags/GTD/" title="GTD">GTD<sup>2</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<div class="social-font" class="clearfix">
+		
+		<a href="http://weibo.com/kenspirit" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/kenspirit" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/kenspirit" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/kenspirit" target="_blank" title="facebook"></a>
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://zespia.tw/hexo/" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2014 
+		
+		<a href="http://www.thinkingincrowd.me" target="_blank" title="鹄思乱想">鹄思乱想</a>
+		
+		</p>
+</div>
+</footer>
+    
+<script>
+  var disqus_shortname = 'thinkingincrowd';
+  
+  var disqus_url = 'http://www.thinkingincrowd.me/2012/08/13/extjs-jasmine-unit-test-part-1-philosophy-and-test-for-store/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+<script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-37378953-1', 'www.thinkingincrowd.me');  
+ga('send', 'pageview');
+</script>
+
+
+  </body>
+</html>

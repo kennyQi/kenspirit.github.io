@@ -1,0 +1,487 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Cleaner Code | Thinking in Crowd / 鹄思乱想</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="鹄思乱想">
+    
+    <meta name="description" content="Finished reading Robert Martin’s “Clean Code” these days, I suddenly feel more passionate to write code, to write better and more descriptive code.
+Be">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="kenspirit" />
+    <meta name="twitter:title" content="Cleaner Code | Thinking in Crowd / 鹄思乱想" />
+      
+    
+    
+    <link rel="alternative" href="/atom.xml" title="Thinking in Crowd / 鹄思乱想" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="Thinking in Crowd / 鹄思乱想">Thinking in Crowd / 鹄思乱想</a></h1>
+				<h2 class="blog-motto">Swan flying in the immense sky</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/about">About</a></li>
+					
+						<li><a href="/algorithm">Algorithm</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:www.thinkingincrowd.me">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2011/03/06/cleaner-code/" title="Cleaner Code" itemprop="url">Cleaner Code</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://plus.google.com/108764880042816555752?rel=author" title="鹄思乱想" target="_blank" itemprop="author">鹄思乱想</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2011-03-06T05:23:04.000Z" itemprop="datePublished">Mar 6 2011</time>
+    Updated:<time datetime="2014-03-28T14:54:55.000Z" itemprop="dateModified">Mar 28 2014</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+		</div>
+		
+		<p>Finished reading Robert Martin’s “Clean Code” these days, I suddenly feel more passionate to write code, to write better and more descriptive code.</p>
+<p>Before, I do think my coding style is not bad and stick to it every time when I am writing Java, Javascript, SQL, etc.</p>
+<p>However, after digesting the essence of “Clean Code”, I am forcing myself to write self-descriptive code, without using comment.</p>
+<p>The most important points I do remember after reading it are:</p>
+<ol>
+<li>Longer descriptive name, smaller function</li>
+</ol>
+<ol>
+<li>Boy Scout Rule</li>
+</ol>
+<ol>
+<li>Know your algorithm</li>
+</ol>
+<p>Although “Clean Code” has shown us many aspects on how to make the code clean, these two rules are easy to remember, fundamental of others.</p>
+<p>Now, I feel the passion of writing code as I am writing a diary, an article.  I feel the impulse of cleaning the mess I got before submitting it again.  What is more, in order to make the code cleaner, I have to make my English better.  haha</p>
+<p>Just take below function as an example.  You might not easily figure out what it’s for.</p>
+<pre><code>function groupingFieldFormat(<span class="keyword">value</span>, p, r, rowIndex, i, ds) {
+    <span class="keyword">var</span> cGrid = ds.cGrid;
+    <span class="keyword">var</span> cGridIsReadonly = (cGrid &amp;&amp; cGrid.isReadonly()) ? <span class="keyword">true</span> : <span class="keyword">false</span>;
+
+    <span class="keyword">if</span> (rowIndex === <span class="number">0</span>) {
+        <span class="keyword">if</span> (cGrid.id === <span class="string">'shipmentPackDetail'</span>
+               &amp;&amp; p.id === <span class="string">'packCount'</span>) {
+            Core.FieldFormat.addCellEditableIndicator(
+               config, p, cGridIsReadonly);
+        }
+        <span class="keyword">return</span> <span class="keyword">value</span>;
+    }
+    <span class="keyword">var</span> lastRecord = ds.getAt(rowIndex - <span class="number">1</span>);
+
+    <span class="keyword">if</span> (lastRecord.data[<span class="string">'lineNo'</span>] == r.data[<span class="string">'lineNo'</span>]
+            &amp;&amp;  lastRecord.data[p.id] === <span class="keyword">value</span>) {
+        <span class="keyword">return</span> <span class="string">''</span>;
+    }
+
+    <span class="keyword">if</span> (cGrid.id === <span class="string">'shipmentPackDetail'</span>
+            &amp;&amp; p.id === <span class="string">'packCount'</span>) {
+        Core.FieldFormat.addCellEditableIndicator(
+            config, p, cGridIsReadonly);
+    }
+    <span class="keyword">return</span> <span class="keyword">value</span>;
+}
+</code></pre><p>Below is the my modified version.  Which version is better is quite obvious although it still has room to improve.</p>
+<pre><code><span class="comment">/**
+ * Used by Color, Pack Name, Pack Count in two grids
+ */</span>
+<span class="function"><span class="keyword">function</span> <span class="title">eliminateRepeatedValueInGroup</span><span class="params">(value, colMeta, record, rowIndex, colIndex, dataStore)</span> {</span>
+    <span class="keyword">if</span> (isFirstLineInOneGroup(dataStore, record, rowIndex, colMeta.id)) {
+        showPackCountEditableIfNeeded(colMeta, dataStore);
+        <span class="keyword">return</span> value;
+    }
+
+    <span class="comment">// Always show value for the first row in grid</span>
+    <span class="comment">// even though not the first line in one pack,</span>
+    <span class="comment">// so that user is easier to check the group value</span>
+    <span class="keyword">return</span> rowIndex === <span class="number">0</span> ? value : <span class="string">''</span>;
+}
+
+<span class="function"><span class="keyword">function</span> <span class="title">isFirstLineInOneGroup</span><span class="params">(dataStore, record, rowIndex, fieldId)</span> {</span>
+    <span class="keyword">var</span> cGrid = dataStore.cGrid;
+    <span class="keyword">if</span> (cGrid.id === <span class="string">'shipmentPackDetail'</span>) {
+        <span class="keyword">return</span> isFirstLineInOnePack(record);
+    }
+
+    <span class="keyword">var</span> lastRecord = dataStore.getAt(rowIndex - <span class="number">1</span>);
+    <span class="keyword">if</span> (lastRecord
+            &amp;&amp; lastRecord.data[fieldId] !== record.data[fieldId]) {
+        <span class="keyword">return</span> <span class="literal">true</span>;
+    }
+    <span class="keyword">return</span> <span class="literal">false</span>;
+}
+
+<span class="function"><span class="keyword">function</span> <span class="title">isFirstLineInOnePack</span><span class="params">(record)</span> {</span>
+    <span class="keyword">if</span> (record.data[<span class="string">'packSeq'</span>] === <span class="number">1</span>) {
+        <span class="keyword">return</span> <span class="literal">true</span>;
+    }
+    <span class="keyword">return</span> <span class="literal">false</span>;
+}
+
+<span class="function"><span class="keyword">function</span> <span class="title">showPackCountEditableIfNeeded</span><span class="params">(colMeta, dataStore)</span> {</span>
+    <span class="keyword">var</span> cGrid = dataStore.cGrid;
+    <span class="keyword">if</span> (cGrid.id === <span class="string">'shipmentPackDetail'</span>
+           &amp;&amp; colMeta.id === <span class="string">'packCount'</span>) {
+        <span class="keyword">var</span> cGridIsReadonly =
+           (cGrid &amp;&amp; cGrid.isReadonly()) ? <span class="literal">true</span> : <span class="literal">false</span>;
+        Core.FieldFormat.addCellEditableIndicator(
+            {}, colMeta, cGridIsReadonly);
+    }
+}
+</code></pre>  
+	</div>
+		<footer class="article-footer clearfix">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Sword/">Sword</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/Coding/">Coding</a><a href="/tags/Retrospect/">Retrospect</a>
+  </div>
+
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://www.thinkingincrowd.me/2011/03/06/cleaner-code/" data-title="Cleaner Code | Thinking in Crowd / 鹄思乱想" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2011/06/15/excelavoidvaliationlostafterpoi/" title="如何避免Microsoft Excel在Cell上定义好的Named Validation的下拉选项在POI写值后丢失">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  如何避免Microsoft Excel在Cell上定义好的Named Validation的下拉选项在POI写值后丢失</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2011/03/06/marching-on/"  title="Marching On">
+ <strong>NEXT:</strong><br/> 
+ <span>Marching On
+</span>
+</a>
+</div>
+
+</nav>
+
+	<section class="comment">
+
+
+    <div id="disqus_thread"></div>
+
+</section>
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+  
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+			<li><a href="/categories/Life/" title="Life">Life<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Sword/" title="Sword">Sword<sup>21</sup></a></li>
+		
+			<li><a href="/categories/Think/" title="Think">Think<sup>27</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/AMD/" title="AMD">AMD<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Adapt/" title="Adapt">Adapt<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Ajax/" title="Ajax">Ajax<sup>2</sup></a></li>
+		
+			<li><a href="/tags/AngularJS/" title="AngularJS">AngularJS<sup>5</sup></a></li>
+		
+			<li><a href="/tags/Blogging/" title="Blogging">Blogging<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Book/" title="Book">Book<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Callback/" title="Callback">Callback<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Change/" title="Change">Change<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Coding/" title="Coding">Coding<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Connect/" title="Connect">Connect<sup>1</sup></a></li>
+		
+			<li><a href="/tags/DB/" title="DB">DB<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Design/" title="Design">Design<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Destiny/" title="Destiny">Destiny<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Directive/" title="Directive">Directive<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Excel/" title="Excel">Excel<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Execution context/" title="Execution context">Execution context<sup>1</sup></a></li>
+		
+			<li><a href="/tags/ExtJs/" title="ExtJs">ExtJs<sup>7</sup></a></li>
+		
+			<li><a href="/tags/Function definition/" title="Function definition">Function definition<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Functional Programming/" title="Functional Programming">Functional Programming<sup>2</sup></a></li>
+		
+			<li><a href="/tags/GTD/" title="GTD">GTD<sup>2</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<div class="social-font" class="clearfix">
+		
+		<a href="http://weibo.com/kenspirit" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/kenspirit" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/kenspirit" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/kenspirit" target="_blank" title="facebook"></a>
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://zespia.tw/hexo/" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2014 
+		
+		<a href="http://www.thinkingincrowd.me" target="_blank" title="鹄思乱想">鹄思乱想</a>
+		
+		</p>
+</div>
+</footer>
+    
+<script>
+  var disqus_shortname = 'thinkingincrowd';
+  
+  var disqus_url = 'http://www.thinkingincrowd.me/2011/03/06/cleaner-code/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//go.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+<script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-37378953-1', 'www.thinkingincrowd.me');  
+ga('send', 'pageview');
+</script>
+
+
+  </body>
+</html>
